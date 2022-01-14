@@ -486,7 +486,7 @@ def generate_analysis_windows(repo, window_size_months):
     revisions. This function is useful when the git repository has no tags
     referencing releases.
     """
-    cmd_date = 'git --git-dir={0} show --format=%ad  --date=iso8601'\
+    cmd_date = 'git --git-dir={0} show --format=%cd --date=iso8601'\
         .format(repo).split()
     latest_date_result = execute_command(cmd_date).splitlines()[0]
     latest_commit = parse_iso_git_date(latest_date_result)
