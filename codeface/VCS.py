@@ -949,7 +949,14 @@ class gitVCS (VCS):
             if (match):
                 cmt.committer = match.group(1)
 
-        descr = parts[descr_index].split("\n")
+        try:
+            descr = parts[descr_index].split("\n")
+        except IndexError:
+            # Some commits may be empty
+            cmt.setDescription([])
+            cmt.commit_msg_info = (0, 0)
+            log.error("Empty commit?! Commit <id {}> is: '{}'".format(cmt.id, msg))
+            return
 
         # Check if commit is corrective using key word search of description
         cmt.checkIfCorrective(descr)
