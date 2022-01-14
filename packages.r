@@ -1,3 +1,4 @@
+#! /usr/bin/env Rscript
 ## This file is part of Codeface. Codeface is free software: you can
 ## redistribute it and/or modify it under the terms of the GNU General Public
 ## License as published by the Free Software Foundation, version 2.
@@ -51,6 +52,10 @@ reinstall.package.from.github <- function(package, url) {
     ## Re-install packages
     devtools::install_github(url, quiet=T)
 }
+#BiocManager::install()
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = "3.10")
 
 library(parallel)
 num.cores <- detectCores(logical=TRUE)
@@ -58,30 +63,34 @@ if (is.na(num.cores)) {
     num.cores <- 1
 }
 
-p <- filter.installed.packages(c("BiRewire", "graph"))
-if(length(p) > 0) {
-    source("http://bioconductor.org/biocLite.R")
-    biocLite(p)
-}
-
-p <- filter.installed.packages(c("statnet", "tm", "optparse", "arules", "data.table", "plyr",
-                                 "igraph", "zoo", "xts", "lubridate", "xtable", "ggplot2",
-                                 "reshape", "wordnet", "stringr", "yaml", "ineq",
+p <- filter.installed.packages(c("reshape", "rjson", "rmysql", "scales", "stringr", "testthat", "xtable", "xts", "zoo", 
+                                 "RCurl", "statnet", "tm", "optparse", "arules", "data.table", "plyr",
+                                 "igraph", "xts", "lubridate", "ggplot2", 
+                                 "wordnet", "stringr", "yaml", "ineq",
                                  "scales", "gridExtra", "scales", "RMySQL", "svglite",
                                  "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                                  "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO",
                                  "GGally", "corrplot", "psych", "markovchain", "hashmap"))
+install.packages("devtools")
+library("devtools")
+devtools::install_github('cran/mnormt@R-3.0.3')
+
 if(length(p) > 0) {
     install.packages(p, dependencies=T, verbose=F, quiet=T, Ncpus=num.cores)
 }
 
 ## Install following packages from different sources
 ## and update existing installations, if needed
+
 reinstall.package.from.github("tm.plugin.mail", "wolfgangmauerer/tm-plugin-mail/pkg")
 reinstall.package.from.github("snatm", "wolfgangmauerer/snatm/pkg")
 reinstall.package.from.github("shinyGridster", "wch/shiny-gridster")
 reinstall.package.from.github("shinybootstrap2", "rstudio/shinybootstrap2")
 
 ## Bioconductor packages
-source("https://bioconductor.org/biocLite.R")
-biocLite("Rgraphviz")
+#source("https://bioconductor.org/biocLite.R")
+#biocLite("Rgraphviz")
+BiocManager::install("Rgraphviz")
+BiocManager::install("BiRewire")
+BiocManager::install("RMySQL")
+

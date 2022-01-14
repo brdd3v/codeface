@@ -46,4 +46,5 @@ following steps:
 5. Point your webserver on the host at [http://localhost:8081](http://localhost:8081)
 
 ## Status
+- codeface run on --tagging tag, --tagging Committer2author, --tagging proximity passes 
 - ![](https://travis-ci.org/siemens/codeface.svg?branch=master) on master

@@ -27,23 +27,27 @@ Vagrant.configure("2") do |config|
   # Hmm... no Debian image available yet, let's use a derivate
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
+ config.vm.provider :virtualbox do |v| 
+    v.customize ["modifyvm", :id, "--cpuexecutioncap", "40"] 
+  end
+
  config.vm.provider :virtualbox do |vbox, override|
    #config.vm.box = "ffuenf/ubuntu-16.04.2-server-amd64"
-   config.vm.box = "ubuntu/trusty64"
+   config.vm.box = "ubuntu/bionic64"
 
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
-    vbox.customize ["modifyvm", :id, "--cpus", "2"]
+    vbox.customize ["modifyvm", :id, "--cpus", "4"]
   end
 
   config.vm.provider :lxc do |lxc, override|
     #override.vm.box = "vagrant-lxc-xenial-amd64.box"
     #override.vm.box_url = "http://terminal.lfd.sturhax.de/~wolfgang/vagrant-lxc-xenial-amd64.box"
-    override.vm.box = "fgrehm/trusty64-lxc"
+    override.vm.box = "ubuntu/bionic64-lxc"
   end
 
   # Forward main web ui (8081) and testing (8100) ports
-  config.vm.network :forwarded_port, guest: 8081, host: 8081
-  config.vm.network :forwarded_port, guest: 8100, host: 8100
+  #config.vm.network :forwarded_port, guest: 8081, host: 8081
+  #config.vm.network :forwarded_port, guest: 8100, host: 8100
 
   config.vm.provision "fix-no-tty", type: "shell" do |s|
     s.privileged = true
@@ -55,9 +59,9 @@ Vagrant.configure("2") do |config|
     s.inline = $build
   end
 
-  config.vm.provision "test", type: "shell" do |s|
-    s.privileged = false
-    s.inline = "cd /vagrant && integration-scripts/test_codeface.sh"
-  end
+  #config.vm.provision "test", type: "shell" do |s|
+  #  s.privileged = false
+  #  s.inline = "cd /vagrant && integration-scripts/test_codeface.sh"
+  #end
 
 end

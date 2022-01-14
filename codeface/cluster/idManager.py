@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # This file is part of Codeface. Codeface is free software: you can
 # redistribute it and/or modify it under the terms of the GNU General Public
 # License as published by the Free Software Foundation, version 2.
@@ -16,10 +18,10 @@
 # All Rights Reserved.
 
 import re
-from email.Utils import parseaddr
-from PersonInfo import PersonInfo
+from email.utils import parseaddr
+from codeface.cluster.PersonInfo import PersonInfo
 from logging import getLogger; log = getLogger(__name__)
-import httplib
+import http.client
 import urllib
 import json
 import string
@@ -49,7 +51,7 @@ class idManager:
 
         self._idMgrServer = conf["idServiceHostname"]
         self._idMgrPort = conf["idServicePort"]
-        self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
+        self._conn = http.client.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID
         self._dbm = dbm
@@ -102,10 +104,9 @@ class idManager:
 
     def _query_user_id(self, name, email):
         """Query the ID database for a contributor ID"""
-
-        params = urllib.urlencode({'projectID': self._projectID,
-                                   'name': name,
-                                   'email': email})
+        params = urllib.parse.urlencode({'projectID': self._projectID,
+                                         'name': name,
+                                         'email': email})
         headers = { "Content-type":
                         "application/x-www-form-urlencoded; charset=utf-8",
                     "Accept": "text/plain" }
@@ -143,7 +144,7 @@ class idManager:
 
         # Construct a local instance of PersonInfo for the contributor
         # if it is not yet available
-        if (not(self.persons.has_key(ID))):
+        if not ID in self.persons:
             self.persons[ID] = PersonInfo(self.subsys_names, ID, name, email)
 
         return ID
@@ -159,6 +160,6 @@ class idManager:
         # to cause parsing problems in later stages
         name = name.replace('\"', "")
         name = name.replace("\'", "")
-        name = string.lstrip(string.rstrip(name))
+        name = str.lstrip(str.rstrip(name))
 
         return name

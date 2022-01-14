@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 
 # Define classes to interact with source code management
 # systems (currently, only git is supported, but adding
@@ -37,20 +37,22 @@
 import itertools
 import readline
 
-import commit
-import fileCommit
+#import commit
+#import fileCommit
+import sys
 import re
 import os
 import bisect
 import ctags
 import tempfile
-import sourceAnalysis
+#import sourceAnalysis
 import shutil
-from fileCommit import FileDict
+from codeface.fileCommit import FileDict
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from ctags import CTags, TagEntry
 from logging import getLogger
 from codeface.linktype import LinkType
+from codeface import commit, fileCommit, sourceAnalysis
 
 log = getLogger(__name__)
 from .util import execute_command
@@ -483,8 +485,9 @@ def get_feature_lines_from_file(file_layout_src, filename):
     fileExt = os.path.splitext(filename)[1]
 
     # temporary file where we write transient data needed for cppstats
-    srcFile = tempfile.NamedTemporaryFile(suffix=fileExt, delete=False)
-    featurefile = tempfile.NamedTemporaryFile(suffix=".csv")
+    srcFile = tempfile.NamedTemporaryFile(suffix=fileExt, delete=False, mode='w')
+    featurefile = tempfile.NamedTemporaryFile(suffix=".csv", mode='w')
+    
     # generate a source code file from the file_layout_src dictionary
     # and save it to a temporary location
     for line in file_layout_src:
@@ -1320,13 +1323,21 @@ class gitVCS (VCS):
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         conf_file = os.path.join(curr_dir, 'doxygen.conf')
         tmp_outdir = tempfile.mkdtemp()
+
+        log.debug("src_file")
+        log.debug(src_file)
+        log.debug("conf_file")
+        log.debug(conf_file)
+        log.debug("tmp_outdir")
+        log.debug(tmp_outdir)
+
         file_analysis = sourceAnalysis.FileAnalysis(src_file,
                                                     conf_file,
                                                     tmp_outdir)
 
         try:
             file_analysis.run_analysis()
-        except Exception, e:
+        except Exception as e:
             log.warning("doxygen analysis error '{0}' - returning empty result".format(e))
             return {}, []
 
@@ -1369,7 +1380,7 @@ class gitVCS (VCS):
 
     def _parseSrcFileCtags(self, src_file):
         # temporary file where we write transient data needed for ctags
-        tag_file = tempfile.NamedTemporaryFile()
+        tag_file = tempfile.NamedTemporaryFile(mode='w')
 
         # run ctags analysis on the file to create a tags file
         cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tag_file.name,
@@ -1378,7 +1389,7 @@ class gitVCS (VCS):
 
         # parse ctags
         try:
-            tags = CTags(tag_file.name)
+            tags = CTags(tag_file.name.encode('utf-8'))
         except:
             log.critical("failure to load ctags file")
             raise Error("failure to load ctags file")
@@ -1395,6 +1406,10 @@ class gitVCS (VCS):
         #  in addition to java and c# files, use "ctags --list-kinds" to
         # see all tag meanings per language
         fileExt = os.path.splitext(src_file)[1].lower()
+        if not isinstance(fileExt, str):
+            fileExt = fileExt.decode('utf-8')
+
+
         if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
             structures.append("m") # methods
             structures.append("i") # interface
@@ -1444,7 +1459,7 @@ class gitVCS (VCS):
         # setup temp file
         # generate a source code file from the file_layout_src dictionary
         # and save it to a temporary location
-        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt, mode='w')
         for line in file_layout_src:
             srcFile.write(line)
         srcFile.flush()
@@ -1461,7 +1476,7 @@ class gitVCS (VCS):
             file_commit.artefact_line_range = True
         elif (fileExt in ['sql']):
             # TODO: Should we use more file extensions?
-            func_lines = self._parseSrcFileDB(srcFile.name)
+            func_lines = self._parseSrcFileCtags(srcFile.name)
             file_commit.artefact_line_range = True
 
         if not func_lines: # for everything else use Ctags

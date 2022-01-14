@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # Prepare base data for the commit cluster analysis
 # (statistical operations will be carried out by R)
 
@@ -24,8 +24,8 @@ import shelve
 import pickle
 import os.path
 import argparse
-import codeBlock
-import codeLine
+#import codeBlock
+#import codeLine
 import math
 import random
 import itertools
@@ -36,6 +36,7 @@ from codeface import kerninfo
 from codeface.commit_analysis import (getSignoffCount, getSignoffEtcCount,
         getInvolvedPersons)
 from codeface.cluster.PersonInfo import RelationWeight
+from codeface.cluster import codeBlock, codeLine
 from codeface.VCS import gitVCS
 from codeface.dbmanager import DBManager, tstamp_to_sql
 from .PersonInfo import PersonInfo
@@ -95,7 +96,7 @@ def computeSubsysAuthorSimilarity(cmt_subsys, author):
     asf = author.getSubsysFraction()
 
     sim = 0
-    for (subsys_name, subsys_touched) in cmt_subsys.iteritems():
+    for (subsys_name, subsys_touched) in cmt_subsys.items():
         sim = max(sim, asf[subsys_name]*subsys_touched)
 
     if  sim > 1:
@@ -117,7 +118,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     count = 0
     sim = 0
 
-    for (subsys_name, fraction) in frac1.iteritems():
+    for (subsys_name, fraction) in frac1.items():
         if fraction != 0 and frac2[subsys_name] != 0:
             count += 1
             sim += fraction + frac2[subsys_name] # UB: 2
@@ -155,7 +156,29 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
     author      = True
     fileState   = file_commit.getFileSnapShot()
     revCmtIds   = file_commit.getrevCmts()
-    revCmts     = [cmtList[revCmtId] for revCmtId in revCmtIds]
+    try:
+        revCmts     = [cmtList[revCmtId] for revCmtId in revCmtIds]
+    except KeyError:
+        #print(len(revCmtIds), len(list(cmtList.keys())))
+        revCmts = []
+        missing_commits = []
+        missing_commits_val = False
+        for revCmtId in revCmtIds:
+           try:
+               revCmts.append(cmtList[revCmtId])
+           
+           except KeyError:
+               print('Missing Commit ID:{} in'.format(revCmtId))
+               missing_commits_val = True
+               missing_commits.append(revCmtId)
+        if missing_commits_val:
+           print('fileCommit.filename', file_commit.filename)
+           print('Missing Commit IDs')
+           all_missing_commits = list(set(missing_commits))
+           print(all_missing_commits)
+           print('Present Commit IDs', set(revCmtIds) - set(missing_commits))
+           print('{} of {} are missing in this range'.format(len(all_missing_commits), len(revCmtIds)))
+    
 
     for cmt in revCmts:
         # the fileState will be modified but for each loop we should start with
@@ -213,7 +236,20 @@ def compute_snapshot_collaboration_features(
     author = True
     file_state = file_commit.getFileSnapShot()
     rev_cmt_ids = file_commit.getrevCmts()
-    rev_cmts = [cmt_list[revCmtId] for revCmtId in rev_cmt_ids]
+    
+    try:
+        rev_cmts = [cmt_list[revCmtId] for revCmtId in rev_cmt_ids]
+    except KeyError:
+        #print(len(revCmtIds), len(list(cmtList.keys())))
+        revCmts = []
+        missing_commits = []
+        missing_commits_val = False
+        for revCmtId in rev_cmt_ids:
+           try:
+               rev_cmts.append(cmt_list[revCmtId])
+           
+           except KeyError:
+               print('Missing Commit ID:{} in'.format(revCmtId))
 
     for cmt in rev_cmts:
         # the file_state will be modified but for each loop we should start
@@ -1050,7 +1086,7 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
 
     # Now that all information on tags is available, compute the normalised
     # statistics. While at it, also compute the per-author commit summaries.
-    for (key, person) in id_mgr.getPersons().iteritems():
+    for (key, person) in id_mgr.getPersons().items():
             person.computeCommitStats()
             person.computeStats(link_type)
 
@@ -1129,7 +1165,13 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf,
     # End for cmt
 
     # Perform bulk insert
-    dbm.doExecCommit("INSERT INTO commit (" + ", ".join(value_names) + ")" +
+    try:
+        dbm.doExecCommit("INSERT INTO commit (" + ", ".join(value_names) + ")" +
+                     " VALUES (" + ", ".join("%s" for x in value_names) + ")",
+                     cmt_db_rows)
+    except UnboundLocalError:
+        print('cmtlist empty?', cmtlist)
+        dbm.doExecCommit("INSERT INTO commit (" + ", ".join(value_names) + ")" +
                      " VALUES (" + ", ".join("%s" for x in value_names) + ")",
                      cmt_db_rows)
 
@@ -1150,7 +1192,7 @@ def writeSubsysPerAuthorData2File(id_mgr, outdir):
         for subsys in id_mgr.getSubsysNames() + ["general"]:
             outstr += "\t{0}".format(subsys_fraction[subsys])
         lines.append(outstr)
-    out = open(os.path.join(outdir, "id_subsys.txt"), 'wb')
+    out = open(os.path.join(outdir, "id_subsys.txt"), 'w')
     out.writelines(lines)
     out.close()
 
@@ -1278,7 +1320,7 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
     # off to utilise this fact for more efficient storage.
 
     link_type = conf["tagging"]
-    out = open(os.path.join(outdir, "adjacencyMatrix.txt"), 'wb')
+    out = open(os.path.join(outdir, "adjacencyMatrix.txt"), 'w')
     idlist = sorted(id_mgr.getPersons().keys())
     # Header
     out.write("" +
@@ -1319,7 +1361,7 @@ def writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf):
     # off to utilise this fact for more efficient storage.
 
     link_type = conf["tagging"]
-    out = open(os.path.join(outdir, "adjacencyMatrix_max_weight.txt"), 'wb')
+    out = open(os.path.join(outdir, "adjacencyMatrix_max_weight.txt"), 'w')
     idlist = sorted(id_mgr.getPersons().keys())
     # Header
     out.write("" +
@@ -1461,7 +1503,7 @@ def computeLogicalDepends(fileCommit_list, cmt_dict, start_date):
       # Compute the number of lines of code changed for each dependency.
       # We captured the function dependency on a line by line basis above
       # now we aggregate the lines that change one function
-      for cmt_id, depend_list in func_depends.iteritems():
+      for cmt_id, depend_list in func_depends.items():
           for func_id, group in itertools.groupby(sorted(depend_list)):
               func_depends_count[cmt_id].extend([(func_id, len(list(group)))])
 
@@ -1529,13 +1571,13 @@ def compute_logical_depends_features(file_commit_list, cmt_dict, start_date):
         # Compute the number of lines of code changed for each dependency.
         # We captured the function dependency on a line by line basis above
         # now we aggregate the lines that change one function
-        for cmt_id, depend_list in feature_depends.iteritems():
+        for cmt_id, depend_list in feature_depends.items():
             feature_depends_count[cmt_id].extend(
                 [(feature_id, len(list(group)))
                     for feature_id, group in itertools.groupby(sorted(depend_list))])
 
         # Same for feature expressions
-        for cmt_id, depend_list in fexpr_depends.iteritems():
+        for cmt_id, depend_list in fexpr_depends.items():
             fexpr_depends_count[cmt_id].extend(
                  [(feature_id, len(list(group)))
                     for feature_id, group in itertools.groupby(sorted(depend_list))]
@@ -1619,7 +1661,16 @@ def compute_feature_proximity_links(
         author = True
         file_state = file_commit.getFileSnapShot()
         rev_cmt_ids = file_commit.getrevCmts()
-        rev_cmts = [cmt_list[revCmtId] for revCmtId in rev_cmt_ids]
+        
+        try:
+            rev_cmts = [cmt_list[revCmtId] for revCmtId in rev_cmt_ids]
+        except KeyError:
+            rev_cmts = []
+            for revCmtId in rev_cmt_ids:
+                try:
+                    rev_cmts.append(cmt_list[revCmtId])
+                except KeyError:
+                    print('Missing Commit:',  revCmtId)
 
         # the fileState will be modified but for each loop we should
         # start with the original fileState
@@ -1824,7 +1875,7 @@ def computeSimilarity(cmtlist):
         atsim = 0 # Author-tagger similarity
         tssim = 0 # Tagger-subsys similarity
 
-        for (key, pi_list) in cmt.getTagPIs().iteritems():
+        for (key, pi_list) in cmt.getTagPIs().items():
             for pi in pi_list:
                 count += 1
                 atsim += computeAuthorAuthorSimilarity(author_pi, pi)
@@ -1879,6 +1930,17 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     entity_type = ("Function", )
     get_entity_source_code = None
     fileCommitDict = git.getFileCommitDict()
+
+   # ERROR LOOKING
+    if link_type == LinkType.proximity:
+        _id_list_matrix = [file_commit.getrevCmts() for file_commit in fileCommitDict.values()]
+        _id_BIG_DICT_KEYS_SET = set(cmtdict.keys())
+        for _id_list in _id_list_matrix:
+            if set(_id_list) != _id_BIG_DICT_KEYS_SET:
+                if not set(_id_list).issubset(_id_BIG_DICT_KEYS_SET):
+                    #print('OHNO', set(_id_list), _id_BIG_DICT_KEYS_SET)
+                    print('BAD DATABASE NAME', dbfilename)
+   
     #---------------------------------
     #compute network connections
     #---------------------------------
@@ -1963,6 +2025,7 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
     #----------------------------
     filename = os.path.join(outdir, "vcs_analysis.db")
     dbm = DBManager(conf)
+    
     performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
                     None, reuse_db, outdir, limit_history, range_by_date,
                     rc_range)

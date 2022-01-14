@@ -34,5 +34,5 @@ fi
 
 # The use of two cpus (-j2) is intentional to make sure things work in
 # parallel processing mode
-echo "Running Codeface on qemu"
-codeface -j2 run -c /vagrant/codeface.conf -p /vagrant/conf/qemu.conf $HOME/res $HOME/git-repos
+echo "Running Codeface on qemu with tagging"
+codeface -j2 run --tagging tag -c /vagrant/codeface.conf -p /vagrant/conf/qemu.conf $HOME/res $HOME/git-repos

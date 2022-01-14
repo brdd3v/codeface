@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ## This file is part of Codeface. Codeface is free software: you can
 ## redistribute it and/or modify it under the terms of the GNU General Public
 ## License as published by the Free Software Foundation, version 2.
@@ -235,7 +236,10 @@ def run(argv):
     set_log_level(args.loglevel)
     if args.logfile:
         start_logfile(args.logfile, 'debug')
-    return args.func(args)
+    try: 
+        return args.func(args)
+    except AttributeError:
+        parser.error("Too few arguments!")
 
 def main():
     import sys

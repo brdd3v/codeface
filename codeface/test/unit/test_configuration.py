@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # This file is part of Codeface. Codeface is free software: you can
 # redistribute it and/or modify it under the terms of the GNU General Public
 # License as published by the Free Software Foundation, version 2.
@@ -34,7 +35,7 @@ class TestConfiguration(unittest.TestCase):
 
     def testLoad(self):
         '''Test that an example configuration is loaded correctly'''
-        global_conf = NamedTemporaryFile(delete=False)
+        global_conf = NamedTemporaryFile(delete=False, mode='w')
         global_conf.write("""
 # Foo commentary! A:B
 ---
@@ -48,7 +49,7 @@ idServicePort: 4242
 idServiceHostname: foohost
         """)
         global_conf.close()
-        project_conf = NamedTemporaryFile(delete=False)
+        project_conf = NamedTemporaryFile(delete=False, mode='w')
         project_conf.write("""
 # Fake commentary!
 
@@ -85,7 +86,7 @@ tagging: tag
         os.unlink(global_conf.name)
         os.unlink(project_conf.name)
         # Check that the configuration is valid YAML
-        yaml_conf = NamedTemporaryFile(delete=False)
+        yaml_conf = NamedTemporaryFile(delete=False, mode='w')
         yaml_conf.write(str(c))
         yaml_conf.close()
         c2 = Configuration.load(yaml_conf.name)
@@ -104,7 +105,7 @@ tagging: tag
 
     def testFail(self):
         '''Test the failure modes of configuration'''
-        global_conf = NamedTemporaryFile(delete=False)
+        global_conf = NamedTemporaryFile(delete=False, mode='w')
         global_conf.write("""
 # Foo commentary! A:B
 ---
@@ -118,7 +119,7 @@ idServicePort: 4242
 idServiceHostname: foohost
         """)
         global_conf.close()
-        project_conf_1 = NamedTemporaryFile(delete=False)
+        project_conf_1 = NamedTemporaryFile(delete=False, mode='w')
         project_conf_1.write("""
 # Fake commentary!
 
@@ -129,7 +130,7 @@ Parse error! ""
         project_conf_1.close()
 
         # project conf wirh wrong number of rcs tags
-        project_conf_2 = NamedTemporaryFile(delete=False)
+        project_conf_2 = NamedTemporaryFile(delete=False, mode='w')
         project_conf_2.write("""
 # Fake commentary!
 
